@@ -1,5 +1,5 @@
 # Variables
-BIN := hotel-reservation-system-api
+BIN := ./bin/api
 
 # Default target
 .PHONY: all
