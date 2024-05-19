@@ -9,11 +9,11 @@ import (
 
 func SetupRouter(db *mongo.Client) *gin.Engine {
 	router := gin.Default()
-	router.Group("/api/v1")
+	api := router.Group("/api/v1")
 
 	// Public routes
 	{
-		router.POST("/register", func(c *gin.Context) { handlers.Register(c, db) })
+		api.POST("/register", func(c *gin.Context) { handlers.Register(c, db) })
 	}
 
 	/*

@@ -38,6 +38,8 @@ func Register(c *gin.Context, client *mongo.Client) {
 	// Defer the cancellation of the context (i.e. the context will be cancelled when the function ends)
 	defer cancel()
 
+	// TODO: Check if the user already exists
+
 	// Insert the user into the collection
 	_, err = collection.InsertOne(ctx, user)
 	if err != nil {
