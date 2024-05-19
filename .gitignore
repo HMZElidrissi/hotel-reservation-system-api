@@ -1,0 +1,10 @@
+### VS Code ###
+.vscode/
+
+### IntelliJ IDEA ###
+.idea
+hotel-reservation-system-api.iml
+
+### Go ###
+bin/
+.env
