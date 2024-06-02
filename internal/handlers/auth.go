@@ -3,11 +3,14 @@ package handlers
 import (
 	"context"
 	"github.com/HMZElidrissi/hotel-reservation-system-api/internal/models"
+	"github.com/HMZElidrissi/hotel-reservation-system-api/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -27,6 +30,7 @@ func Register(c *gin.Context, client *mongo.Client) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error while hashing the password"})
 	}
 
+	log.Println("Hashed Password:", string(hashedPassword))
 	user.Password = string(hashedPassword)
 	user.ID = primitive.NewObjectID()
 
@@ -38,7 +42,12 @@ func Register(c *gin.Context, client *mongo.Client) {
 	// Defer the cancellation of the context (i.e. the context will be cancelled when the function ends)
 	defer cancel()
 
-	// TODO: Check if the user already exists
+	var existingUser models.User
+	err = collection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&existingUser)
+	if err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "user already exists"})
+		return
+	}
 
 	// Insert the user into the collection
 	_, err = collection.InsertOne(ctx, user)
@@ -46,6 +55,51 @@ func Register(c *gin.Context, client *mongo.Client) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error while inserting the user"})
 		return
 	}
-	// Return a success message
+
+	var storedUser models.User
+	err = collection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&storedUser)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error while retrieving the stored user"})
+		return
+	}
+	log.Println("Stored Hashed Password:", storedUser.Password)
+
 	c.JSON(http.StatusCreated, gin.H{"message": "your account has been created"})
+}
+
+func Login(c *gin.Context, client *mongo.Client) {
+	var credentials struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := c.ShouldBindJSON(&credentials); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	collection := client.Database(viper.GetString("MONGO_DB_NAME")).Collection("users")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var user models.User
+	err := collection.FindOne(ctx, bson.M{"email": credentials.Email}).Decode(&user) // Find the user by email and decode the result into the user model, decode it means that the result will be stored in the user model
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "wrong password"})
+		return
+	}
+
+	token, err := utils.GenerateJWT(user.Email, user.Role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error while generating the token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": token})
 }

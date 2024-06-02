@@ -14,6 +14,7 @@ func SetupRouter(db *mongo.Client) *gin.Engine {
 	// Public routes
 	{
 		api.POST("/register", func(c *gin.Context) { handlers.Register(c, db) })
+		api.POST("/login", func(c *gin.Context) { handlers.Login(c, db) })
 	}
 
 	/*
