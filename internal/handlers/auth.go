@@ -10,29 +10,45 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"net/http"
 	"time"
 )
 
+type RegisterRequest struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	FirstName string             `json:"first_name" binding:"required"`
+	LastName  string             `json:"last_name" binding:"required"`
+	Email     string             `json:"email" binding:"required,email"`
+	Password  string             `json:"password" binding:"required"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
 func Register(c *gin.Context, client *mongo.Client) {
-	// Create a new user model
-	var user = models.User{}
+	var req RegisterRequest
 
 	// Bind the JSON body to the user model (meaning the user model now has the data from the request)
-	if err := c.ShouldBindJSON(&user); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error while hashing the password"})
 	}
 
-	log.Println("Hashed Password:", string(hashedPassword))
-	user.Password = string(hashedPassword)
-	user.ID = primitive.NewObjectID()
+	user := models.User{
+		ID:        primitive.NewObjectID(),
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		Email:     req.Email,
+		Password:  string(hashedPassword),
+		Role:      "user",
+	}
 
 	// Get the collection
 	collection := client.Database(viper.GetString("MONGO_DB_NAME")).Collection("users")
@@ -62,16 +78,12 @@ func Register(c *gin.Context, client *mongo.Client) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error while retrieving the stored user"})
 		return
 	}
-	log.Println("Stored Hashed Password:", storedUser.Password)
 
 	c.JSON(http.StatusCreated, gin.H{"message": "your account has been created"})
 }
 
 func Login(c *gin.Context, client *mongo.Client) {
-	var credentials struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
+	var credentials LoginRequest
 
 	if err := c.ShouldBindJSON(&credentials); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
