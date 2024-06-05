@@ -24,3 +24,19 @@ func GenerateJWT(email, role string) (string, error) {
 
 	return tokenString, nil
 }
+
+func ParseToken(tokenString string) (*jwt.Claims, error) {
+	var claims jwt.Claims
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecret, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, jwt.ErrSignatureInvalid
+	}
+
+	return &claims, nil
+}
