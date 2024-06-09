@@ -53,3 +53,4 @@ go get github.com/gin-gonic/gin
 - [x] Test Customer handlers
 - [ ] Test Admin reservation handlers
 - [ ] Test Admin room handlers
+- [ ] Scripts -> database management -> seeding, migration
