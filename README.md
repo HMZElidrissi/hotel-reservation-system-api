@@ -47,3 +47,9 @@ Installing gin
 ```
 go get github.com/gin-gonic/gin
 ```
+
+## To DO
+
+- [x] Test Customer handlers
+- [ ] Test Admin reservation handlers
+- [ ] Test Admin room handlers

@@ -15,7 +15,7 @@ import (
 
 func init() {
 	viper.Set("MONGO_DB_NAME", "test_db")
-	viper.Set("JWT_SECRET", "your_secret_key")
+	viper.Set("JWT_SECRET", "test_secret")
 }
 
 func setupTestDB() (*mongo.Client, func()) {
@@ -25,7 +25,6 @@ func setupTestDB() (*mongo.Client, func()) {
 		panic(err)
 	}
 
-	// Clean up function
 	return client, func() {
 		client.Database(viper.GetString("MONGO_DB_NAME")).Drop(context.Background())
 		client.Disconnect(context.Background())

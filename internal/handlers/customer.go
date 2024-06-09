@@ -33,14 +33,20 @@ func BookRoom(c *gin.Context, client *mongo.Client) {
 		return
 	}
 
+	userID, err := primitive.ObjectIDFromHex(claims["id"].(string))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
 	reservation.ID = primitive.NewObjectID()
-	reservation.UserID = claims["id"].(primitive.ObjectID)
+	reservation.UserID = userID
 	reservation.RoomID = room
 	collection := client.Database(viper.GetString("MONGO_DB_NAME")).Collection("reservations")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := collection.InsertOne(ctx, reservation)
+	_, err = collection.InsertOne(ctx, reservation)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error while creating the reservation"})
 		return
@@ -62,11 +68,17 @@ func GetCustomerReservations(c *gin.Context, client *mongo.Client) {
 		return
 	}
 
+	userID, err := primitive.ObjectIDFromHex(claims["id"].(string))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
 	collection := client.Database(viper.GetString("MONGO_DB_NAME")).Collection("reservations")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cursor, err := collection.Find(ctx, bson.M{"user_id": claims["id"]})
+	cursor, err := collection.Find(ctx, bson.M{"user_id": userID})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error while fetching the reservations"})
 		return
