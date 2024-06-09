@@ -47,7 +47,7 @@ func Register(c *gin.Context, client *mongo.Client) {
 		LastName:  req.LastName,
 		Email:     req.Email,
 		Password:  string(hashedPassword),
-		Role:      "user",
+		Role:      "customer",
 	}
 
 	// Get the collection
@@ -107,7 +107,7 @@ func Login(c *gin.Context, client *mongo.Client) {
 		return
 	}
 
-	token, err := utils.GenerateJWT(user.Email, user.Role)
+	token, err := utils.GenerateJWT(user.ID, user.Email, user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error while generating the token"})
 		return
